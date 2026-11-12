@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Praça · Moderação</title>
+<style>
+:root{--bg:#121826;--p1:#1a2236;--p2:#222c45;--line:#2f3b5c;--ink:#e8ecf7;--mut:#8f9bbd;--acc:#5b7cff;--ok:#38c98d;--warn:#f2b134;--hot:#ff7a45;--red:#f0506e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 "Segoe UI",system-ui,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.btn{background:var(--acc);border:0;color:#fff;border-radius:8px;padding:7px 14px;font-weight:600}
+.btn.s{background:var(--p2);border:1px solid var(--line)}
+.btn.r{background:var(--red)}
+.btn.o{background:var(--hot)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+input,select,textarea{background:var(--p2);border:1px solid var(--line);border-radius:8px;padding:7px 10px;width:100%}
+.mut{color:var(--mut)}
+#login{max-width:340px;margin:16vh auto;background:var(--p1);padding:24px;border-radius:14px;display:grid;gap:12px}
+#shell{display:grid;grid-template-columns:200px 1fr;min-height:100vh}
+aside{background:var(--p1);padding:16px 10px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:3px}
+aside h1{font-size:1.1rem;margin:0 8px 14px}
+aside button{background:none;border:0;text-align:left;padding:9px 12px;border-radius:8px;color:var(--mut);font-weight:600}
+aside button:hover{background:var(--p2)}
+aside button.on{background:var(--p2);color:var(--ink);box-shadow:inset 3px 0 var(--acc)}
+.live{margin-top:auto;padding:8px 12px;font-size:.85rem}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--red);margin-right:6px}
+.dot.on{background:var(--ok);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.35}}
+@media(prefers-reduced-motion:reduce){.dot.on{animation:none}}
+main{padding:18px;min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px}
+.card{background:var(--p1);border-radius:12px;padding:14px;min-width:0}
+.kpi b{display:block;font-size:1.9rem;line-height:1.1}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sp{justify-content:space-between}
+h2{font-size:1.05rem;margin:0 0 10px}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{color:var(--mut);font-weight:600;font-size:.82rem}
+tbody tr{cursor:pointer}
+tbody tr:hover,tr.sel{background:var(--p2)}
+.scroll{overflow:auto;max-height:68vh}
+.pill{display:inline-block;border-radius:20px;padding:1px 9px;font-size:.78rem;font-weight:700;background:var(--p2)}
+.s-ativo{color:var(--ok)}.s-suspenso{color:var(--warn)}.s-banido{color:var(--red)}
+.Urgente{background:var(--red);color:#fff}.Alta{background:var(--hot);color:#111}.Média{background:var(--warn);color:#111}.Baixa{background:var(--line)}
+.sc{min-width:48px;text-align:center;color:#111}
+.chip{display:inline-block;background:var(--p2);border:1px solid var(--line);border-radius:6px;padding:0 7px;margin:1px 2px 1px 0;font-size:.78rem}
+.g3{display:grid;grid-template-columns:minmax(260px,1fr) minmax(300px,1.3fr) minmax(280px,1fr);gap:12px;align-items:start}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:1100px){.g3{grid-template-columns:1fr 1fr}}
+@media(max-width:800px){#shell{grid-template-columns:1fr}aside{position:static;height:auto;flex-direction:row;overflow:auto}aside h1,.live{display:none}.g3,.g2{grid-template-columns:1fr}}
+.lv{display:grid;gap:6px;margin:8px 0}
+.lv label{display:flex;gap:8px;align-items:center;background:var(--p2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;cursor:pointer}
+.lv label:has(input:checked){border-color:var(--acc);background:#27345c}
+.lv label.hot:has(input:checked){border-color:var(--red);background:#4a2234}
+.lv input{width:auto}
+.post{background:var(--p2);border-radius:8px;padding:8px 10px;margin:6px 0;overflow-wrap:anywhere}
+.post.hit{border-left:4px solid var(--warn);background:#3a3322}
+.tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+#toasts{position:fixed;right:14px;bottom:14px;display:grid;gap:8px;z-index:9}
+.toast{background:var(--p2);border-left:4px solid var(--acc);padding:10px 14px;border-radius:8px;box-shadow:0 4px 18px #0008}
+.toast.warn{border-color:var(--warn)}.toast.err{border-color:var(--red)}.toast.ok{border-color:var(--ok)}
+.sla{font-variant-numeric:tabular-nums}.late{color:var(--red);font-weight:700}
+svg text{fill:var(--mut);font-size:10px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div id="root"></div><div id="toasts"></div>
+<script>
+const $ = (s, e = document) => e.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = t => new Date(t * 1000).toLocaleString("pt-BR", {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"});
+const dur = s => s < 3600 ? Math.floor(s / 60) + " min" : s < 86400 ? Math.floor(s / 3600) + " h" : Math.floor(s / 86400) + " d";
+const LV = [["warn", "Advertência por DM"], ["susp24", "Suspensão de 24 h"], ["susp7", "Suspensão de 7 dias"], ["ban", "BAN permanente de conta"], ["ipban", "BAN por IP/Hardware"]];
+const TERMS = ["4.1 Discurso de ódio", "4.2 Assédio", "4.3 Conteúdo adulto", "4.4 Spam/bots", "4.5 Desinformação", "4.6 Golpes", "4.7 Violação de privacidade", "4.8 Outros"];
+const SLA = {Urgente: 3600, Alta: 14400, Média: 86400, Baixa: 259200};
+const scol = s => s >= 95 ? "var(--red)" : s >= 70 ? "var(--hot)" : s >= 40 ? "var(--warn)" : "var(--ok)";
+let tab = "dash", S = {sel: null, tk: null, pf: "all", chk: new Set(), minScore: 40, f: "reported", q: "", tkf: "Todos"}, tm, last = {}, es;
+
+function toast(m, k = "") { const d = document.createElement("div"); d.className = "toast " + k; d.textContent = m; $("#toasts").append(d); setTimeout(() => d.remove(), 4500); }
+async function A(path, method = "GET", body) {
+  const r = await fetch("/admin/api" + path, {method, headers: {"Content-Type": "application/json"}, body: body ? JSON.stringify(body) : undefined});
+  if (r.status === 401) { login(); throw 0; }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) { toast(d.error || "Erro", "err"); throw d; }
+  return d;
+}
+
+/* ---------------- login e casca ---------------- */
+function login() {
+  es && es.close();
+  $("#root").innerHTML = `<div id="login"><h2>Praça · Moderação</h2><input id="un" placeholder="Usuário da equipe (deixe vazio para a senha-mestra)" autocomplete="username" autocapitalize="none" style="margin-bottom:8px"><input id="pw" type="password" placeholder="Senha (a da sua conta, ou a senha-mestra do terminal)" autofocus><div id="le" style="color:var(--red)"></div><button class="btn" id="lg">Entrar</button></div>`;
+  const go = async () => { try { await A("/login", "POST", {password: $("#pw").value, username: $("#un").value}); await shell(); } catch (e) { $("#le").textContent = e.error || ""; } };
+  $("#lg").onclick = go; $("#pw").onkeydown = e => e.key === "Enter" && go();
+}
+let ME = {role: "moderator", name: ""}, TABS = [];
+const ALLTABS = [["dash", "Visão geral"], ["tk", "Denúncias"], ["ban", "Banimentos"], ["bot", "Anti-bot"], ["live", "Ao vivo"], ["team", "Equipe", "admin"], ["ia", "IA da Praça", "admin"], ["log", "Auditoria"]];
+const VIEWS = () => ({dash: vDash, tk: vTk, ban: vBan, bot: vBot, live: vLive, team: vTeam, ia: vIA, log: vLog});
+async function shell() {
+  try { ME = await A("/me"); } catch { return; }
+  TABS = ALLTABS.filter(t => !t[2] || t[2] === ME.role);
+  $("#root").innerHTML = `<div id="shell"><aside><h1>Praça · Moderação</h1><div class="mut" style="margin:-4px 0 10px">${esc(ME.name)} · <b>${ME.role === "admin" ? "Administrador" : "Moderador"}</b></div>${TABS.map(([k, n]) => `<button data-t="${k}">${n} <span class="pill Urgente" id="b-${k}" hidden></span></button>`).join("")}
+   <div class="live"><span class="dot" id="dot"></span><span id="lt">conectando…</span></div><button id="out">Sair</button></aside><main id="main"></main></div>`;
+  document.querySelectorAll("aside [data-t]").forEach(b => b.onclick = () => go(b.dataset.t));
+  $("#out").onclick = async () => { await A("/logout", "POST").catch(() => {}); login(); };
+  go(location.hash.slice(1) || "dash"); live();
+}
+function go(t) {
+  tab = TABS.some(x => x[0] === t) ? t : "dash"; location.hash = tab;
+  document.querySelectorAll("aside [data-t]").forEach(b => b.classList.toggle("on", b.dataset.t === tab));
+  VIEWS()[tab](true);
+}
+const refresh = () => VIEWS()[tab](false);
+setInterval(() => { if (tab === "live" && !document.hidden) refresh(); }, 4000);
+
+/* ---------------- tempo real (SSE) ---------------- */
+function live() {
+  es && es.close();
+  es = new EventSource("/admin/api/stream");
+  es.onopen = () => { $("#dot").className = "dot on"; $("#lt").textContent = "ao vivo"; };
+  es.onerror = () => { $("#dot").className = "dot"; $("#lt").textContent = "reconectando…"; };
+  es.addEventListener("change", e => {
+    const s = JSON.parse(e.data);
+    if (last.repmax !== undefined) {
+      if (s.repmax > last.repmax) toast("🚨 Nova denúncia na fila", "warn");
+      if (s.users - last.users >= 5) toast(`👥 ${s.users - last.users} contas novas de uma vez`, "warn");
+      if (s.pun > last.pun) toast("⚖️ Punição registrada", "ok");
+    }
+    last = s;
+    const b = $("#b-tk"); if (b) { b.hidden = !s.rep; b.textContent = s.rep; }
+    clearTimeout(tm); tm = setTimeout(refresh, 300);
+  });
+}
+setInterval(() => document.querySelectorAll("[data-sla]").forEach(e => {
+  const left = +e.dataset.sla - (Date.now() / 1000 - +e.dataset.t);
+  e.textContent = left < 0 ? "SLA estourado " + dur(-left) : "SLA " + dur(left); e.classList.toggle("late", left < 0);
+}), 1000);
+
+/* ---------------- gráfico ---------------- */
+function chart(tot, bad) {
+  const W = 640, H = 130, m = Math.max(5, ...tot), x = i => 28 + i * (W - 36) / 59, y = v => H - 18 - v * (H - 34) / m;
+  const line = (a, c) => `<polyline fill="none" stroke="${c}" stroke-width="2" points="${a.map((v, i) => x(i) + "," + y(v)).join(" ")}"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Atividade na última hora"><line x1="28" x2="${W - 8}" y1="${H - 18}" y2="${H - 18}" stroke="#2f3b5c"/>
+   <text x="2" y="14">${m}</text><text x="2" y="${H - 18}">0</text><text x="28" y="${H - 4}">-60 min</text><text x="${W - 40}" y="${H - 4}">agora</text>
+   ${line(tot, "#5b7cff")}${line(bad, "#f0506e")}</svg><div class="mut"><span style="color:#5b7cff">●</span> posts/min &nbsp; <span style="color:#f0506e">●</span> de contas suspeitas</div>`;
+}
+
+/* ---------------- visão geral ---------------- */
+async function vDash(first) {
+  if (first) $("#main").innerHTML = `<div class="kpis" id="k"></div><div class="g2"><div class="card"><h2>Picos de atividade (1 h)</h2><div id="ch"></div></div><div class="card"><h2>Últimas ações</h2><div id="au"></div></div></div>`;
+  const [s, b, a] = await Promise.all([A("/stats"), A("/antibot"), A("/audit")]);
+  const k = (n, l, c) => `<div class="card kpi"><b style="color:${c || "inherit"}">${n}</b><span class="mut">${l}</span></div>`;
+  $("#k").innerHTML = k(s.users, "contas") + k(s.rep, "denúncias abertas", s.rep ? "var(--warn)" : "") + k(s.banned + s.suspended, "banidas ou suspensas") +
+    k(b.accounts.filter(x => x.score >= 70).length, "prováveis bots", "var(--hot)") + k(s.posts, "posts") + k(s.msgs, "mensagens");
+  $("#ch").innerHTML = chart(b.total, b.suspicious);
+  $("#au").innerHTML = a.slice(0, 8).map(r => `<div class="row sp" style="border-bottom:1px solid var(--line);padding:4px 0"><span>${esc(r.action)} · ${esc(r.target)}</span><span class="mut">${fmt(r.created)}</span></div>`).join("") || '<span class="mut">Nada ainda.</span>';
+}
+
+/* ---------------- formulário de punição (reutilizado) ---------------- */
+function punishForm(el, u, resolve, done) {
+  const sug = ["warn", "susp24", "susp7", "ban"][Math.min(u.history.length, 3)];
+  el.innerHTML = `<h2>Aplicar punição a @${esc(u.username)}</h2><div class="mut">Escada sugerida: ${LV.find(l => l[0] === sug)[1]} (já tem ${u.history.length} aviso(s)).</div>
+   <div class="lv">${LV.filter(([k]) => ME.role === "admin" || k !== "ipban").map(([k, n]) => `<label class="${k.includes("ban") ? "hot" : ""}"><input type="radio" name="lv" value="${k}" ${k === sug ? "checked" : ""}>${n}${k === sug ? ' <span class="chip">sugerido</span>' : ""}</label>`).join("")}</div>
+   <select id="tm">${TERMS.map(t => `<option>${t}</option>`).join("")}</select>
+   <textarea id="rs" rows="4" placeholder="Justificativa obrigatória (mín. 20 caracteres)" style="margin:8px 0"></textarea>
+   <div class="row sp"><span class="mut" id="rc">0/20</span><button class="btn r" id="ap">Aplicar punição</button></div>`;
+  $("#rs", el).oninput = e => $("#rc", el).textContent = e.target.value.length + "/20";
+  const apply = async () => {
+    const lv = $("input[name=lv]:checked", el).value;
+    if (["ban", "ipban"].includes(lv) && prompt(`Confirmação: digite @${u.username} para aplicar o BAN`) !== "@" + u.username) return toast("BAN cancelado", "warn");
+    try {
+      const r = await A("/punish", "POST", {user_id: u.id, level: lv, term: $("#tm", el).value, reason: $("#rs", el).value, resolve});
+      toast(r.accounts_on_ip ? `Punição aplicada · ${r.accounts_on_ip} conta(s) usam este IP` : "Punição aplicada", "ok"); done && done();
+    } catch {}
+  };
+  $("#ap", el).onclick = apply;
+  el.onkeydown = e => { if (e.key === "Enter" && e.ctrlKey) apply(); };
+}
+
+/* ---------------- banimentos ---------------- */
+async function vBan(first) {
+  if (first) {
+    $("#main").innerHTML = `<div class="g3"><div class="card"><div class="tabs">${[["reported", "Denunciados"], ["all", "Todos"], ["banned", "Punidos"]].map(([k, n]) => `<button class="btn s" data-f="${k}">${n}</button>`).join("")}</div>
+     <input id="sq" placeholder="Buscar @usuário  (atalho: /)" style="margin-bottom:8px"><div class="scroll"><table><thead><tr><th>Usuário</th><th>Denúncias</th><th>Avisos</th><th>Status</th></tr></thead><tbody id="ul"></tbody></table></div></div>
+     <div class="card" id="pf"><span class="mut">Selecione um usuário. Dica: J/K navegam na lista.</span></div><div class="card" id="pu"><span class="mut">O painel de punição aparece aqui.</span></div></div>`;
+    document.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { S.f = b.dataset.f; vBan(false); });
+    $("#sq").oninput = e => { S.q = e.target.value; vBan(false); };
+  }
+  const us = await A(`/users?f=${S.f}&q=${encodeURIComponent(S.q)}`);
+  $("#ul").innerHTML = us.map(u => `<tr data-id="${u.id}" class="${u.id === S.sel ? "sel" : ""}"><td>@${esc(u.username)}</td><td>${u.rep || "–"}</td><td>${u.prev || "–"}</td><td class="s-${u.status}">${u.status}</td></tr>`).join("") || '<tr><td colspan="4" class="mut">Nenhum usuário neste filtro.</td></tr>';
+  $("#ul").querySelectorAll("tr[data-id]").forEach(r => r.onclick = () => { S.sel = +r.dataset.id; vBan(false); });
+  if (S.sel) fileOf(S.sel, null, () => { $("#pu").dataset.u = ""; vBan(false); });
+}
+async function fileOf(id, resolve, done) {
+  let u; try { u = await A("/user/" + id); } catch { return; }
+  $("#pf").innerHTML = `<div class="row sp"><h2>@${esc(u.username)} <span class="s-${u.status}">${u.status}</span></h2><span class="pill sc" style="background:${scol(u.score)}">${u.score}%</span></div>
+   <div class="mut">${esc(u.display)} · ${u.followers} seguidores · IP ${esc(u.ip || "?")} · conta de ${fmt(u.created)}</div><p>${esc(u.bio) || '<span class="mut">Sem bio.</span>'}</p>
+   ${u.reason ? `<div class="post">Motivo atual: ${esc(u.reason)}</div>` : ""}
+   ${u.signals.length ? `<div>${u.signals.map(s => `<span class="chip">${esc(s[0])} +${s[1]}</span>`).join("")}</div>` : ""}
+   ${u.same_ip.length ? `<p class="mut">Outras contas no mesmo IP: ${u.same_ip.map(n => "@" + esc(n)).join(", ")}</p>` : ""}
+   <h2 style="margin-top:12px">Histórico de punições (${u.history.length})</h2>${u.history.map(h => `<div class="post"><b>${esc(h.level)}</b> · ${esc(h.term)} <span class="mut">${fmt(h.created)}</span><br>${esc(h.reason)}</div>`).join("") || '<span class="mut">Ficha limpa.</span>'}
+   <h2 style="margin-top:12px">Últimos posts</h2>${u.posts.map(p => `<div class="post row sp"><span>${esc(p.text)}</span><button class="btn s" data-dp="${p.id}">Apagar</button></div>`).join("") || '<span class="mut">Sem posts.</span>'}
+   ${u.status !== "ativo" || u.captcha ? '<button class="btn s" id="rv" style="margin-top:8px">Reverter punição / liberar</button>' : ""}`;
+  $("#pf").querySelectorAll("[data-dp]").forEach(b => b.onclick = async () => { await A(`/post/${b.dataset.dp}/delete`, "POST"); toast("Post apagado", "ok"); fileOf(id, resolve, done); });
+  const rv = $("#rv"); if (rv) rv.onclick = async () => { await A("/revert", "POST", {user_id: id}); toast("Liberado", "ok"); done && done(); };
+  if (!$("#pu textarea") || $("#pu").dataset.u != id) { $("#pu").dataset.u = id; punishForm($("#pu"), u, resolve, done); }
+}
+addEventListener("keydown", e => {
+  if (tab !== "ban" || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) { if (e.key === "Escape") e.target.blur(); return; }
+  const rows = [...document.querySelectorAll("#ul tr[data-id]")], i = rows.findIndex(r => +r.dataset.id === S.sel);
+  if (e.key === "j" || e.key === "k") { const r = rows[Math.max(0, Math.min(rows.length - 1, i + (e.key === "j" ? 1 : -1)))]; if (r) { S.sel = +r.dataset.id; $("#pu").dataset.u = ""; vBan(false); } }
+  else if (e.key === "/") { e.preventDefault(); $("#sq").focus(); }
+  else if ("asb".includes(e.key) && S.sel) { const r = $(`input[value=${{a: "warn", s: "susp7", b: "ban"}[e.key]}]`); if (r) r.checked = true; }
+});
+
+/* ---------------- denúncias ---------------- */
+async function vTk(first) {
+  if (first) $("#main").innerHTML = `<div class="tabs" id="tt"></div><div class="g3" style="grid-template-columns:minmax(240px,.8fr) minmax(320px,1.4fr) minmax(280px,1fr)"><div class="card scroll" id="ql"></div>
+   <div class="card" id="cx"><span class="mut">Selecione uma denúncia na fila.</span></div><div class="card" id="ac"><span class="mut">As ações do moderador aparecem aqui.</span></div></div>`;
+  const all = await A("/tickets"), n = p => all.filter(t => p === "Todos" || t.priority === p).length;
+  $("#tt").innerHTML = ["Todos", "Urgente", "Alta", "Média", "Baixa"].map(p => `<button class="btn ${S.tkf === p ? "" : "s"}" data-p="${p}">${p} (${n(p)})</button>`).join("");
+  $("#tt").querySelectorAll("button").forEach(b => b.onclick = () => { S.tkf = b.dataset.p; vTk(false); });
+  const list = all.filter(t => S.tkf === "Todos" || t.priority === S.tkf);
+  $("#ql").innerHTML = list.map(t => `<div class="post" style="cursor:pointer;${S.tk && S.tk.type === t.type && S.tk.id === t.id ? "outline:2px solid var(--acc)" : ""}" data-k="${t.type}:${t.id}">
+    <div class="row sp"><span class="pill ${t.priority}">${t.priority}</span><span class="sla mut" data-sla="${SLA[t.priority]}" data-t="${t.created}"></span></div>
+    <div>${esc(t.preview)}</div><div class="mut">@${esc(t.author)} · ${t.n} denúncia(s) · ${t.cats.join(", ")}</div></div>`).join("") || '<div class="mut">Praça tranquila — nenhum ticket aberto.</div>';
+  $("#ql").querySelectorAll("[data-k]").forEach(e => e.onclick = () => { const [type, id] = e.dataset.k.split(":"); S.tk = {type, id: +id}; vTk(false); });
+  if (S.tk && !all.some(t => t.type === S.tk.type && t.id === S.tk.id)) { S.tk = null; $("#cx").innerHTML = '<span class="mut">Ticket resolvido. Escolha o próximo.</span>'; $("#ac").innerHTML = ""; }
+  else if (S.tk) tkDetail();
+}
+async function tkDetail() {
+  const d = await A(`/ticket?type=${S.tk.type}&id=${S.tk.id}`);
+  $("#cx").innerHTML = `<h2>Conteúdo no contexto original</h2>${d.context.filter(c => c.id < (d.post ? d.post.id : 0)).map(c => `<div class="post mut">@${esc(c.username)}: ${esc(c.text)}</div>`).join("")}
+   ${d.room ? `<div class="post hit"><b>🎙 Mesa: ${esc(d.room.title)}</b><br><span class="mut">Anfitrião @${esc(d.author?.username)} · #${esc(d.room.tags || "")} · ${esc(d.room.privacy)} · ${d.room.ended ? "encerrada" : "pode estar ao vivo"}</span></div>` : d.post ? `<div class="post hit"><b>@${esc(d.author.username)}</b> · ${fmt(d.post.created)}<br>${esc(d.post.text)}${d.post.place ? `<br><span class="mut">📍 ${esc(d.post.place.name)} — ${esc(d.post.place.address)}</span>` : ""}${(d.media || []).length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;margin-top:8px">${d.media.map(m => m.kind === "video" ? `<video src="${esc(m.url)}" poster="${esc(m.thumb)}" controls preload="none" style="width:100%;border-radius:8px"></video>` : `<a href="${esc(m.url)}" target="_blank" rel="noopener"><img src="${esc(m.thumb)}" style="width:100%;border-radius:8px" alt="${esc(m.alt)}"></a>`).join("")}</div>` : ""}</div>` : `<div class="post hit"><b>Perfil @${esc(d.author?.username)}</b><br>${esc(d.author?.bio)}</div>${d.context.map(c => `<div class="post">${esc(c.text)}</div>`).join("")}`}
+   ${d.post ? d.context.filter(c => c.id > d.post.id).map(c => `<div class="post mut">@${esc(c.username)}: ${esc(c.text)}</div>`).join("") : ""}
+   <h2 style="margin-top:10px">Denunciantes</h2>${d.reports.map(r => `<div class="post"><span class="chip">${esc(r.category)}</span> @${esc(r.username)} ${esc(r.reason)}</div>`).join("")}`;
+  $("#ac").innerHTML = `<h2>Ação do moderador</h2><div class="row"><button class="btn s" id="k">Manter conteúdo</button>${S.tk.type === "post" ? '<button class="btn o" id="d">Deletar conteúdo</button>' : S.tk.type === "room" ? '<button class="btn o" id="d">Encerrar Mesa</button>' : ""}<button class="btn r" id="p">Penalizar autor</button></div><div id="pz" style="margin-top:12px"></div>`;
+  const act = async a => { await A("/ticket", "POST", {...S.tk, action: a}); toast(a === "keep" ? "Conteúdo mantido" : "Conteúdo deletado", "ok"); S.tk = null; vTk(false); };
+  $("#k").onclick = () => act("keep"); if ($("#d")) $("#d").onclick = () => act("delete");
+  $("#p").onclick = async () => { if (!d.author) return toast("Autor não existe mais", "err"); const u = await A("/user/" + d.author.id); punishForm($("#pz"), u, [S.tk.type, S.tk.id], () => { S.tk = null; vTk(false); }); };
+}
+
+/* ---------------- ao vivo: Mesas e chamadas ---------------- */
+async function vLive(first) {
+  if (first) $("#main").innerHTML = `<div class="kpis" id="lk"></div><div class="card"><h2>Mesas de Debate ao vivo</h2><div class="mut" style="margin-bottom:8px">Você vê quem fala, não o áudio. Para ações severas, use Denúncias/Banimentos.</div><div class="scroll"><table><thead><tr><th>Título</th><th>Anfitrião</th><th>Palco</th><th>Plateia</th><th>Privacidade</th><th>Duração</th><th></th></tr></thead><tbody id="lr"></tbody></table></div></div>`;
+  const d = await A("/live"), c = d.counts, k = (n, l) => `<div class="card kpi"><b>${n}</b><span class="mut">${l}</span></div>`;
+  $("#lk").innerHTML = k(c.members, "membros conectados") + k(c.visitors, "visitantes conectados") + k(c.rooms, "Mesas ao vivo") + k(c.in_rooms, "pessoas em Mesas") + k(c.calls, "chamadas em andamento");
+  $("#lr").innerHTML = d.rooms.map(r => `<tr><td>${esc(r.title)}</td><td>@${esc(r.host)}</td><td>${r.speakers.map(u => "@" + esc(u)).join(", ")}</td><td>${r.listeners}</td><td>${esc(r.privacy)}</td><td>${dur(Date.now() / 1000 - r.created)}</td><td><button class="btn s" data-k="${r.id}">Remover alguém</button> <button class="btn r" data-e="${r.id}">Encerrar</button></td></tr>`).join("") || '<tr><td colspan="7" class="mut">Nenhuma Mesa ao vivo.</td></tr>';
+  document.querySelectorAll("[data-e]").forEach(b => b.onclick = async () => { if (confirm("Encerrar esta Mesa para todos?")) { await A(`/room/${b.dataset.e}/end`, "POST"); toast("Mesa encerrada", "ok"); vLive(false); } });
+  document.querySelectorAll("[data-k]").forEach(b => b.onclick = async () => { const u = prompt("Usuário a remover da Mesa (sem @):"); if (u) { await A(`/room/${b.dataset.k}/kick`, "POST", {user: u}); toast("Removido", "ok"); vLive(false); } });
+}
+/* ---------------- IA da conta @praca (Groq) ---------------- */
+async function vIA(first) {
+  if (first) $("#main").innerHTML = `<div class="card"><h2>IA da conta @praca</h2><div class="mut" style="margin-bottom:10px">A IA publica assuntos variados pela conta oficial “Praça · Moderação”. A conta não tem senha nem login: só o servidor publica por ela.</div><div id="ist" class="mut"></div>
+   <div class="row" style="margin-top:10px"><input id="it" placeholder="Assunto específico (opcional)" style="max-width:340px"><button class="btn" id="ig">Gerar post agora</button></div></div>
+   <div class="card" style="margin-top:12px"><h2>Últimos posts da conta</h2><div id="il"></div></div>`;
+  const d = await A("/ai");
+  $("#ist").innerHTML = d.enabled ? `✅ Groq configurada · modelo <code>${esc(d.model)}</code> · automático a cada ${d.every_min || "—"} min` : "⚠️ Defina a variável <code>GROQ_KEY</code> no servidor para a IA postar.";
+  $("#il").innerHTML = d.items.map(p => `<div class="post" style="margin-bottom:6px">${esc(p.text)}<br><span class="mut">${fmt(p.created)}</span></div>`).join("") || '<span class="mut">Ainda sem posts.</span>';
+  $("#ig").onclick = async () => { $("#ig").disabled = true; try { const r = await A("/ai/post", "POST", {topic: $("#it").value}); toast("Publicado: " + r.text.slice(0, 60), "ok"); vIA(false); } finally { $("#ig").disabled = false; } };
+}
+/* ---------------- equipe (só administradores) ---------------- */
+async function vTeam(first) {
+  if (first) $("#main").innerHTML = `<div class="card"><h2>Equipe de moderação</h2><div class="mut" style="margin-bottom:10px"><b>Moderador</b>: denúncias, advertência, suspensões e BAN de conta, anti-bot (sem expurgo) e Mesas. <b>Administrador</b>: tudo isso + BAN por IP/hardware, expurgo em massa, simulação, equipe e auditoria.</div>
+   <div class="row" style="margin-bottom:12px"><input id="tu" placeholder="@usuário existente" style="max-width:240px"><select id="tr" style="max-width:180px"><option value="moderator">Moderador</option><option value="admin">Administrador</option></select><button class="btn" id="ta">Dar papel</button></div>
+   <div class="scroll"><table><thead><tr><th>Usuário</th><th>Papel</th><th></th></tr></thead><tbody id="tl"></tbody></table></div></div>`;
+  const l = await A("/staff");
+  $("#tl").innerHTML = l.map(u => `<tr><td>@${esc(u.username)}</td><td>${u.role === "admin" ? "Administrador" : "Moderador"}</td><td><button class="btn r" data-r="${esc(u.username)}">Remover papel</button></td></tr>`).join("") || '<tr><td colspan="3" class="mut">Só a senha-mestra por enquanto.</td></tr>';
+  document.querySelectorAll("[data-r]").forEach(b => b.onclick = async () => { await A("/staff", "POST", {username: b.dataset.r, role: "member"}); toast("Papel removido", "ok"); vTeam(false); });
+  $("#ta").onclick = async () => { await A("/staff", "POST", {username: $("#tu").value.replace("@", ""), role: $("#tr").value}); toast("Papel atualizado", "ok"); $("#tu").value = ""; vTeam(false); };
+}
+
+/* ---------------- anti-bot ---------------- */
+async function vBot(first) {
+  if (first) $("#main").innerHTML = `<div class="card"><div class="row sp"><h2>Picos de atividade suspeita</h2>${ME.role === "admin" ? '<button class="btn s" id="sim">Simular ataque de bots (teste)</button>' : ""}</div><div id="ch"></div></div>
+   <div class="card" style="margin-top:12px"><div class="row sp"><div class="row"><span>Score mínimo: <b id="mv">${S.minScore}</b>%</span><input type="range" id="ms" min="0" max="100" value="${S.minScore}" style="width:160px"></div>
+    <div class="row"><span class="mut" id="sc">0 selecionadas</span><button class="btn s" id="b1">CAPTCHA na próxima ação</button><button class="btn o" id="b2">Suspender p/ análise humana</button>${ME.role === "admin" ? '<button class="btn r" id="b3">Expurgo de bots</button>' : '<span class="mut" title="Exclusivo de administradores">🔒 Expurgo: só admin</span>'}</div></div>
+   <div class="scroll" style="margin-top:8px"><table><thead><tr><th><input type="checkbox" id="all" style="width:auto"></th><th>Conta</th><th>Score</th><th>Sinais</th><th>IP</th><th>Idade</th><th>Posts</th><th>Status</th></tr></thead><tbody id="bl"></tbody></table></div></div>`;
+  const d = await A("/antibot"); S.accs = d.accounts;
+  $("#ch").innerHTML = chart(d.total, d.suspicious);
+  const rows = d.accounts.filter(a => a.score >= S.minScore);
+  S.chk = new Set([...S.chk].filter(i => rows.some(r => r.id === i)));
+  $("#bl").innerHTML = rows.map(a => `<tr data-id="${a.id}"><td><input type="checkbox" style="width:auto" ${S.chk.has(a.id) ? "checked" : ""}></td><td>@${esc(a.username)}</td>
+    <td><span class="pill sc" style="background:${scol(a.score)}">${a.score}%</span></td><td>${a.signals.map(s => `<span class="chip">${esc(s)}</span>`).join("")}</td><td>${esc(a.ip || "")}</td><td>${dur(a.age)}</td><td>${a.posts}</td><td class="s-${a.status}">${a.status}${a.captcha ? " · captcha" : ""}</td></tr>`).join("") || '<tr><td colspan="8" class="mut">Nenhuma conta nesta faixa.</td></tr>';
+  let lastI = null;
+  $("#bl").querySelectorAll("tr[data-id]").forEach((r, i) => r.onclick = e => {
+    const id = +r.dataset.id;
+    if (e.shiftKey && lastI !== null) rows.slice(Math.min(i, lastI), Math.max(i, lastI) + 1).forEach(a => S.chk.add(a.id));
+    else S.chk.has(id) ? S.chk.delete(id) : S.chk.add(id);
+    lastI = i; vBot(false);
+  });
+  $("#all").onclick = () => { S.chk = $("#all").checked ? new Set(rows.map(r => r.id)) : new Set(); vBot(false); };
+  const sel = rows.filter(r => S.chk.has(r.id)), ok = sel.length && sel.every(r => r.score > 95);
+  $("#sc").textContent = sel.length + " selecionadas"; $("#b1").disabled = $("#b2").disabled = !sel.length; if ($("#b3")) $("#b3").disabled = !ok;
+  if ($("#b3")) $("#b3").title = ok ? "" : "Só contas com score acima de 95% podem ser expurgadas";
+  $("#ms").oninput = e => { S.minScore = +e.target.value; $("#mv").textContent = S.minScore; vBot(false); };
+  const bulk = async (action, msg) => { try { const r = await A("/bulk", "POST", {action, ids: [...S.chk]}); toast(`${msg}: ${r.done} aplicadas · ${r.skipped} ignoradas`, "ok"); S.chk.clear(); vBot(false); } catch {} };
+  $("#b1").onclick = () => bulk("captcha", "CAPTCHA");
+  $("#b2").onclick = () => confirm(`Suspender ${sel.length} conta(s) por 72 h para análise humana?`) && bulk("suspend", "Suspensão");
+  if ($("#b3")) $("#b3").onclick = () => { const a = sel.slice(0, 10).map(r => "@" + r.username).join(", "); if (prompt(`EXPURGO de ${sel.length} contas (apaga contas e posts).\nAmostra: ${a}\nDigite EXPURGAR para confirmar:`) === "EXPURGAR") bulk("purge", "Expurgo"); };
+  if ($("#sim")) $("#sim").onclick = async () => { await A("/simulate", "POST"); toast("Ataque simulado: 25 contas-bot criadas", "warn"); };
+}
+
+/* ---------------- auditoria ---------------- */
+async function vLog(first) {
+  if (first) $("#main").innerHTML = '<div class="card"><h2>Log de auditoria (somente inserção)</h2><div class="scroll"><table><thead><tr><th>Quando</th><th>Ação</th><th>Alvo</th><th>Detalhe</th></tr></thead><tbody id="lg"></tbody></table></div></div>';
+  const a = await A("/audit");
+  $("#lg").innerHTML = a.map(r => `<tr style="cursor:default"><td>${fmt(r.created)}</td><td>${esc(r.action)}</td><td>${esc(r.target)}</td><td>${esc(r.detail)}</td></tr>`).join("") || '<tr><td colspan="4" class="mut">Nenhum registro.</td></tr>';
+}
+
+A("/me").then(shell).catch(() => {});
+</script>
+</body>
+</html>

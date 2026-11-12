@@ -1,0 +1,54 @@
+PRAÇA — rede social + painel de moderação ao vivo
+=================================================
+Rodar:      pip install flask pillow     (ffmpeg opcional, para qualidades de vídeo)
+            python app.py
+Rede:       http://localhost:5000            Painel: http://localhost:5000/admin
+Senha-mestra do painel: aparece no terminal e fica em .adminpass
+            (ou defina:  ADMIN_PASS=minhasenha python app.py)
+
+Perfis
+  Visitante     (sem conta)  lê feed, perfis, locais e lista de Mesas. Não posta/curte/liga.
+  Membro        posta (fotos, vídeo, GIF, local), conversa, liga, participa das Mesas, Cadeados.
+  Moderador     /admin com a PRÓPRIA conta: denúncias, advertência/suspensão/BAN de conta,
+                anti-bot (CAPTCHA e suspensão em massa), Mesas ao vivo. Sem BAN por IP e sem expurgo.
+  Administrador /admin: tudo + BAN por IP, expurgo, simulação, equipe, auditoria.
+  Dar papel: painel > Equipe (admin) — o usuário precisa já ter conta.
+
+Variáveis de ambiente (todas opcionais)
+  ADMIN_PASS            senha-mestra do painel
+  GROQ_KEY              chave da Groq: a IA passa a postar pela conta @praca (Praça · Moderação)
+  GROQ_MODEL            padrão llama-3.3-70b-versatile
+  AI_POST_MIN           minutos entre posts automáticos da IA (padrão 120; 0 desliga)
+  GIPHY_KEY / TENOR_KEY biblioteca de GIFs (sem chave: usa a biblioteca local da Praça)
+  TURN_URL TURN_USER TURN_PASS   servidor TURN (necessário p/ chamadas atrás de NAT/4G restritivo)
+  STUN_URL              padrão stun:stun.l.google.com:19302
+  MAX_IMAGE_MB=25 MAX_GIF_MB=15 MAX_VIDEO_MB=700 MAX_VIDEO_SEC=1800
+  ROOM_MAX_SPEAKERS=10 ROOM_MAX_LISTENERS=200
+  NOMINATIM_UA          identificação enviada ao Nominatim (busca de locais OpenStreetMap)
+  PORT
+
+Limites técnicos
+  Carrossel: até 10 imagens (ou 1 vídeo; não mistura). Vídeo até 30 min / 700 MB.
+  Fotos são reduzidas a 4096 px e o EXIF (inclusive GPS) é removido.
+  Chamadas: até 20 pessoas, toque 45 s, máx. 4 h, queda de rede tolerada 20 s.
+  Mesas: até 10 oradores, máx. 8 h.
+  Mídia enviada e não publicada expira em 24 h.
+
+ATENÇÃO — escala: chamadas e Mesas usam WebRTC em malha (cada navegador liga a cada outro).
+Funciona bem para uso pequeno/médio (grupos de poucas pessoas; Mesas com dezenas de ouvintes).
+Para grupos de 20 com vídeo ou centenas de ouvintes, troque a malha por um SFU (LiveKit, mediasoup).
+Sem notificação push com o navegador fechado (precisaria de Web Push/FCM): o toque e o aviso
+funcionam com a Praça aberta (ou aba em segundo plano com notificações liberadas).
+
+Conta @praca: é de sistema, SEM senha e sem login. Só o servidor publica por ela (IA automática ou
+painel > IA da Praça > Gerar post agora). Moderadores usam a própria conta no /admin.
+
+PUBLICAR (Render + Vercel)
+  1. Suba esta pasta para um repositório no GitHub (a raiz do repo = esta pasta).
+  2. Render: New > Blueprint (usa render.yaml) ou Web Service com runtime Docker.
+     Plano "starter" (disco persistente de 5 GB p/ banco e uploads). Veja ADMIN_PASS em Environment.
+     STUN do Google já configurado: STUN_URL=stun:stun.l.google.com:19302
+  3. Vercel (opcional, para o endereço praca.vercel.app): importe o mesmo repo; o vercel.json repassa
+     tudo ao Render. Troque praca.onrender.com no vercel.json pela URL real do seu serviço.
+  A Vercel NÃO roda o servidor da Praça (precisa de processo único com memória e conexões longas);
+  ela só funciona aqui como "porta de entrada". Se o tempo real falhar por ela, use a URL do Render.

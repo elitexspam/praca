@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: praca
+    runtime: docker
+    plan: starter            # disco persistente exige plano pago
+    healthCheckPath: /api/limits
+    disk:
+      name: praca-data
+      mountPath: /var/data
+      sizeGB: 5
+    envVars:
+      - key: ADMIN_PASS
+        generateValue: true  # veja o valor em Environment, no painel do Render
+      - key: STUN_URL
+        value: stun:stun.l.google.com:19302
+      - key: DATA_DIR
+        value: /var/data
+      - key: PROXIES
+        value: "2"           # Render + Vercel na frente
+      # opcionais: GROQ_KEY, GIPHY_KEY/TENOR_KEY, TURN_URL/TURN_USER/TURN_PASS
